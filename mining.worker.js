@@ -6,10 +6,10 @@ importScripts('blockchain.js');
 onmessage = async function(e) {
     let blockchain = Blockchain.fromJSON(e.data.blockchain);
     let block = await blockchain.getBlockTemplate();
-    let start = Date.now();
+    let reward = new CoinBaseTransaction('addrTest', blockchain.getBlockReward(block.index));
+    block.addTransaction(reward);
     while (!await blockchain.validToInsert(block)) {
         await block.newNonce();
     }
-    let end = Date.now();
-    postMessage({block: block.toJSON(), time_secs: (end - start) / 1000, attempts: block.nonce});
+    postMessage({block: block.toJSON()});
 }
