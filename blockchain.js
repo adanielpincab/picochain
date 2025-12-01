@@ -12,8 +12,11 @@ class Transaction {
     constructor(from, to, amount) {
         this.from = from;
         this.to = to;
-        this.amount = amount;
+        this.amount = amount; // in NANO (1 PC = 1,000,000,000,000 NANO)
+        this.fee = 0;
         this.timestamp = Date.now();
+        this.type = 'standard';
+        this.signature = null; // [publicKey, signature(txhash)]
     }
 
     async hash() {
@@ -21,6 +24,7 @@ class Transaction {
             this.from + 
             this.to + 
             this.amount +
+            this.fee +
             this.timestamp
         );
     }
@@ -35,9 +39,18 @@ class Transaction {
         this.signature = sjcl.codec.hex.fromBits(signature);
     }
 
-    async verify(publicKey) {
+    async verify() {
+        if (!this.signature) return false;
+
+        let signingPubKey = this.signature[0];
+        let signature = this.signature[1];
+        let signingAddress = addressFromPublicKey(signingPubKey);
+
+        if (signingAddress !== this.from) return false;
+
+        const publicKey = sjcl.ecc.ecdsa.publicKeyFromHex(signingPubKey);
         const hash = await this.hash();
-        const signatureBits = sjcl.codec.hex.toBits(this.signature);
+        const signatureBits = sjcl.codec.hex.toBits(signature);
         return sjcl.ecc.ecdsa.verify(
             publicKey,
             signatureBits,
@@ -46,13 +59,26 @@ class Transaction {
     }
 }
 
+class CoinBaseTransaction extends Transaction {
+    constructor(to, amount) {
+        super(null, to, amount);
+        this.type = 'coinbase';
+    }
+
+    async verify() { return true; }
+}
+
 class Block {
-    constructor(index, timestamp, data, previousHash) {
+    constructor(index, previousHash, timestamp = Date.now()) {
         this.index = index;
         this.timestamp = timestamp;
-        this.data = data;
+        this.transactions = [];
         this.previousHash = previousHash;
         this.nonce = 0;
+    }
+
+    addTransaction(tx) {
+        this.transactions.push(tx);
     }
 
     async hash() {
@@ -74,7 +100,7 @@ class Block {
         return {
             index: this.index,
             timestamp: this.timestamp,
-            data: this.data,
+            transactions: this.transactions,
             previousHash: this.previousHash,
             nonce: this.nonce
         };
@@ -101,11 +127,23 @@ class Blockchain {
     }
 
     length(self) {
+        if (this.snapshot.height === undefined) {
+            return this.chain.length;
+        }
         return this.snapshot.height + this.chain.length;
     }
 
     toString() {
         return JSON.stringify(this.toJSON());
+    }
+
+    async getTotalWorkAverage() {
+        let max = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+        let totalWork = 0;
+        for (let block of this.chain) {
+            totalWork += max/(parseInt(await block.hash(), 16)+1);
+        }
+        return totalWork / this.chain.length;
     }
 
     static fromJSON(json) {
@@ -138,7 +176,7 @@ class Blockchain {
 
     async validToInsert(block) {
         const previousBlock = this.chain[this.chain.length - 1];
-        if (block.index !== previousBlock.index + 1) { return false; }
+        if (block.index !== previousBlock.index + 1) { console.log("Block index is invalid"); return false; }
         if (
             (block.timestamp >  Date.now() + 5000) ||
             (block.timestamp < previousBlock.timestamp)
@@ -146,6 +184,7 @@ class Blockchain {
         if (block.previousHash !== await previousBlock.hash()) { return false; }
         if (parseInt(await block.hash(), 16) > this.target) { return false; }
         if (roughSizeOfObject(block) > MAX_BLOCK_SIZE_BYTES) { return false; }
+        if (!this.verifyBlockTransactions(block)) { return false; }
         
         return true;
     }
@@ -164,10 +203,23 @@ class Blockchain {
             this.snapshot.height = prunedBlock.index;
             this.snapshot.lastBlockHash = await prunedBlock.hash();
             this.snapshot.lastBlockTimestamp = prunedBlock.timestamp;
-            if (this.snapshot.ledger) {
-                // TODO: update ledger from prunedBlock transactions
+            if (!this.snapshot.ledger) this.snapshot.ledger = {};
+            for (let tx of prunedBlock.transactions || []) {
+                if (true || await tx.verify()) {
+                    if (tx.from) {
+                        this.snapshot.ledger[tx.from] -= (tx.amount + tx.fee);
+                    }
+                    if (this.snapshot.ledger[tx.to]) {
+                        this.snapshot.ledger[tx.to] += tx.amount;
+                    } else {
+                        this.snapshot.ledger[tx.to] = tx.amount;
+                    }
+
+                    if (this.snapshot.ledger[tx.from] === 0) {
+                        delete this.snapshot.ledger[tx.from];
+                    }
+                }
             }
-        
         }
 
         return true;
@@ -176,15 +228,71 @@ class Blockchain {
     async getBlockTemplate() {
         const previousBlock = this.chain[this.chain.length - 1];
         const newIndex = previousBlock.index + 1;
-        const newTimestamp = Date.now();
-        const newData = {};
         const newPreviousHash = await previousBlock.hash();
-
-        return new Block(newIndex, newTimestamp, newData, newPreviousHash);
+        return new Block(newIndex, newPreviousHash);
     }
 
     getLength() {
         return this.snapshot.height + this.chain.length;
+    }
+
+    getBlockReward(blockIndex) {
+        const halvings = Math.floor(blockIndex / HALVING_INTERVAL_BLOCKS);
+        const initialReward = 5_000_000_000_000; // nanoPC
+        return Math.floor(initialReward / Math.pow(2, halvings));
+    }
+
+    getConfirmedBalance(address) {
+        let balance = 0;
+        if (this.snapshot.ledger && this.snapshot.ledger[address]) {
+            balance += this.snapshot.ledger[address];
+        }
+        for (let block of this.chain) {
+            for (let transaction of block.transactions || []) {
+                if (transaction.to === address) {
+                    balance += transaction.amount;
+                }
+            }
+        }
+        return balance;
+    }
+
+    verifyBlockTransactions(block) {
+        if (block.transactions.filter(tx => tx.type === 'coinbase').length > 1) {
+            return false;
+        }
+
+        let fees = 0;
+        let txIndex = 0;
+        for (let tx of block.transactions || []) {
+            if (tx.type === 'coinbase') { txIndex++; continue; }
+            if (!tx.verify()) { return false; }
+            
+            const fromAddress = tx.from;
+            let balance = this.getConfirmedBalance(fromAddress);
+            for (let i = 0; i < txIndex; i++) {
+                let priorTx = block.transactions[i];
+                if (priorTx.from === fromAddress) {
+                    balance -= (priorTx.amount + priorTx.fee);
+                } else if (priorTx.to === fromAddress) {
+                    balance += priorTx.amount;
+                }
+            }
+            fees += tx.fee;
+            if (balance < (tx.amount + tx.fee)) { return false; }
+            balance -= (tx.amount + tx.fee);
+            txIndex++;
+        }
+
+        let block_reward = this.getBlockReward(block.index);
+        let coinbase = block.transactions.find(tx => tx.type === 'coinbase');
+        if (coinbase) {
+            if (coinbase.amount !== (block_reward + fees)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 

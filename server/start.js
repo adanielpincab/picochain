@@ -1,6 +1,8 @@
 const GUN = require('gun');
-const server = require('http').createServer().listen(8080);
+const server = require('http').createServer().listen(8999);
 const gun = GUN({
     web: server, 
-    multicast: false
+    multicast: false,
+    localStorage: false,
+    radisk: false
 });
