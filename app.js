@@ -173,6 +173,13 @@ async function updateUI() {
     document.getElementById('debug-wallet-balance').innerText = balance;
     document.getElementById('debug-blockchain').innerHTML = JSON.stringify(Array.from(blockchain.chain).reverse(), null, 2);
     document.getElementById('debug-mempool').innerHTML = await Promise.all(mempool.transactions.map(async tx => await Transaction.fromJSON(tx).hash() + '<br>' + JSON.stringify(tx))).then(results => results.join('<br><br>'));
+
+    UI.update(
+        address,
+        balance,
+        blockchain,
+        mempool
+    );
 }
 
 async function sendTransaction(recipientAddress, amount) {

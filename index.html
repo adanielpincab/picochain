@@ -3,12 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pico</title>
+    <title>PicoChain</title>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bytesized&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <main>
+    <div id="root">
+        <main id="main">
+            main
+            <div id="main-balance"></div>
+            <div id="main-actions">
+                <div class="main-action-button" id="main-action-send">
+                    <span class="material-symbols-outlined">arrow_warm_up</span>
+                    <div class="main-action-button">Send</div>
+                </div>
+                <div class="main-action-button" id="main-action-receive">
+                    <span class="material-symbols-outlined">arrow_cool_down</span>
+                    <div class="main-action-button">Receive</div>
+                </div>
+            </div>
+            <div id="latest-transactions"></div>
+        </main>
+        <section id="send-panel">
+            send-panel
+            <input type="text" id="send-recipient-address" placeholder="Recipient Address" required>
+        </section>
+    </div>
+
+    <aside id="debug-panel">
         <div id="debug-wallet-address"></div>
         <div id="debug-wallet-balance"></div>
         <hr>
@@ -25,7 +51,7 @@
         <hr>
         Chain:
         <div id="debug-blockchain"></div>
-    </main>
+    </aside>
 </body>
 <script src="imports/elliptic.min.js"></script>
 <script src="crypto.js"></script>
@@ -35,5 +61,6 @@
 
 <script src="consensus.js"></script>
 <script src="blockchain.js"></script>
+<script src="ui.js"></script>
 <script type="module" src="app.js"></script>
 </html>
