@@ -8,14 +8,31 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <main></main>
-    <div id="blockchain"></div>
+    <main>
+        <div id="debug-wallet-address"></div>
+        <div id="debug-wallet-balance"></div>
+        <hr>
+        <div id="transfer-form">
+            <label for="debug-recipient-address">Send To:</label>
+            <input type="text" id="debug-recipient-address" placeholder="Address" required>
+            <label for="debug-transfer-amount">Amount:</label>
+            <input type="number" min="0" id="debug-transfer-amount" placeholder="Amount" required>
+            <button type="submit" id="debug-send-button">Send</button>
+        </div>
+        <hr>
+        Mempool:
+        <div id="debug-mempool"></div>
+        <hr>
+        Chain:
+        <div id="debug-blockchain"></div>
+    </main>
 </body>
+<script src="imports/elliptic.min.js"></script>
+<script src="crypto.js"></script>
+
 <script src="imports/gun.js"></script>
 <script src="imports/sea.js"></script>
-<script src="imports/sjcl.js"></script>
 
-<script src="crypto.js"></script>
 <script src="consensus.js"></script>
 <script src="blockchain.js"></script>
 <script type="module" src="app.js"></script>
