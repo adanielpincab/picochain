@@ -6,6 +6,7 @@
     --mustard: #f7ce5bff;
     --emerald: #32de8aff;
     --white: #FCFCFC;
+    --shadow-grey-2: #39393a;
     --shadow-grey: #656567;
 }
 
@@ -19,6 +20,21 @@ body, html {
     margin: 0;
     padding: 0;
 }
+
+input:focus {
+  outline: none;
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
 
 #root {
     height: 100%;
@@ -39,6 +55,12 @@ body, html {
     box-sizing: border-box;
 }
 
+#main {
+	display: flex;
+	flex-direction: column;
+	align-items: space-around;
+}
+
 .main-action-button * {
     color: var(--onyx);
 }
@@ -46,12 +68,112 @@ body, html {
     background-color: var(--white);
     cursor: pointer;
     display: flex;
+    align-items: center;
     border-radius: 16px;
-    padding: 4px 8px;
+    padding: 8px 16px;
+}
+
+#main-balance {
+	font-size: 3rem;
+}
+
+#main-address {
+	opacity: 0.6;
+	font-size: 0.6rem;
 }
 
 #main-actions {
     display: flex;
     gap: 16px;
     margin-top: 20px;
+}
+
+#latest-transactions {
+	padding-top: 20px;
+	box-sizing: border-box;
+	overflow-y: scroll;
+	height: 60%;
+	margin-top: 16px;
+	scrollbar-color: var(--shadow-grey) var(--onyx);
+	scrollbar-arrow-color: var(--onyx) var(--onyx);
+}
+
+.main-transaction {
+	display: flex;
+	align-items: center;
+	padding: 8px;
+}
+
+.main-transaction:not(:last-child) {
+	border-bottom: 1px solid var(--shadow-grey);
+}
+
+.main-transaction .amount {
+	margin-right: 20px;
+	font-weight: bold;
+}
+.main-transaction.positive .amount { color: var(--emerald); }
+.main-transaction.negative .amount { color: var(--atomic-tangerine); }
+.main-transaction.blink .amount { color: var(--mustard); }
+
+#main-miner-toggle {
+	cursor: pointer;
+	position: absolute;
+	top: 20px;
+	right: 20px;
+}
+
+#main-miner-toggle>div {
+	display: flex;
+	align-items: center;
+}
+
+@keyframes blink {
+	0% {opacity: 1;}
+	50% {opacity: .6;}
+	0% {opacity: 1;}
+}
+
+#miner-working, .blink {
+	animation: blink 1.5s infinite ease-in-out;
+}
+
+#root>section>.close-button{
+	cursor: pointer;
+	position: absolute;
+	top: 20px;
+	right: 20px;
+}
+
+#send-panel>div {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	margin-bottom: 20px;
+	max-width: 300px;
+}
+
+#send-recipient-address {
+	background: var(--shadow-grey-2);
+	color: var(--white);
+	border: none;
+	padding: 8px;
+	border-radius: 8px;
+	max-width: 100%;
+}
+
+#send-amount {
+	background: var(--onyx);
+	color: var(--white);
+	border: none;
+	text-align: center;
+	font-size: 3rem;
+	max-width: 100%;
+}
+
+#receive-qrcode {
+	background-color: var(--shadow-grey-2);
+	padding: 16px;
+	border-radius: 4px;
 }

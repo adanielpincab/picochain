@@ -74,13 +74,12 @@ async function listenToPeer(pubKey) {
     gun.get('~' + pubKey).get('blockchain').on(async (data, key) => {
         let peerBlockchain = Blockchain.fromJSON(JSON.parse(data));
         if (!await validateFullChain(peerBlockchain)) return;
-        // if (peerBlockchain.length() <= blockchain.length()) return;
         if (await peerBlockchain.getTotalWorkAverage() <= await blockchain.getTotalWorkAverage()) return;
         console.log('✅⛓️🤝 Better blockchain received from peer:', pubKey);
         Object.assign(blockchain, peerBlockchain);
         await mempool.cleanUp();
         broadcastMyChain();
-        
+
         resetWorker();
         mine(address);
     });
@@ -130,11 +129,13 @@ async function broadcastMyMempool() {
 
 let worker = new Worker('mining.worker.js');
 function resetWorker() {
-    worker.terminate();
+	if (worker) {
+		worker.terminate();
+    }
     worker = new Worker('mining.worker.js');
 }
 
-let mining = true;
+let mining = false;
 async function mine(miningAddress) {
     if (!mining) return;
     worker.postMessage({blockchain: blockchain.toJSON(), rewardAddress: miningAddress, mempool: mempool.serialize()});
@@ -153,8 +154,9 @@ async function mine(miningAddress) {
 
         worker.postMessage({blockchain: blockchain.toJSON(), rewardAddress: miningAddress, mempool: mempool.serialize()});
         broadcastMyChain();
-    }
+	}
 }
+
 function toggleMining() {
     if (mining) {
         mining = false;
@@ -162,23 +164,25 @@ function toggleMining() {
         console.log('⛏️🛑[MINER] Stopped mining.');
     } else {
         mining = true;
-        console.log('⛏️🟢[MINER] Resumed mining.');
+		console.log('⛏️🟢[MINER] Resumed mining.');
+		resetWorker();
         mine(address);
     }
 }
 
 async function updateUI() {
-    let balance = blockchain.getConfirmedBalance(address) / UNITS_PER_COIN + ' PC';
-    document.getElementById('debug-wallet-address').innerText = address;
-    document.getElementById('debug-wallet-balance').innerText = balance;
-    document.getElementById('debug-blockchain').innerHTML = JSON.stringify(Array.from(blockchain.chain).reverse(), null, 2);
-    document.getElementById('debug-mempool').innerHTML = await Promise.all(mempool.transactions.map(async tx => await Transaction.fromJSON(tx).hash() + '<br>' + JSON.stringify(tx))).then(results => results.join('<br><br>'));
+	let balance  = blockchain.getConfirmedBalance(address);
+    document.getElementById('debug-wallet-address').textContent = address;
+    document.getElementById('debug-wallet-balance').textContent = balance;
+    document.getElementById('debug-blockchain').textContent = JSON.stringify(Array.from(blockchain.chain).reverse(), null, 2);
+	document.getElementById('debug-mempool').textContent = await Promise.all(mempool.transactions.map(async tx => await Transaction.fromJSON(tx).hash() + '<br>' + JSON.stringify(tx))).then(results => results.join('<br><br>'));
 
     UI.update(
         address,
         balance,
         blockchain,
-        mempool
+		mempool,
+		mining
     );
 }
 
@@ -188,8 +192,6 @@ async function sendTransaction(recipientAddress, amount) {
     await transaction.sign(keys.priv);
     mempool.addTransaction(transaction);
     await broadcastMyMempool(transaction);
-    resetWorker();
-    mine(address);
     console.log('✅📨 Created and broadcasted transaction:', transaction);
 }
 
@@ -200,7 +202,17 @@ document.getElementById('debug-send-button').addEventListener('click', (e) => {
     sendTransaction(recipientAddress, amount);
 });
 
-mine(address);
+root.querySelector("#main-miner-toggle").addEventListener('click', () => {
+	toggleMining();
+});
+
+root.querySelector("#send-panel-submit").addEventListener('click', () => {
+	let recipientAddress = root.querySelector("#send-recipient-address").value;
+	let amount = parseFloat(root.querySelector("#send-amount").value);
+	sendTransaction(recipientAddress, amount);
+	UI.gotoRootView("main");
+});
+
 setInterval(async () => {
     await updateUI();
-}, 1000);
+}, 1500);
