@@ -22,8 +22,8 @@ class Transaction {
 
     async hash() {
         return await sha256Hex(
-            this.from + 
-            this.to + 
+            this.from +
+            this.to +
             this.amount +
             this.fee +
             this.type +
@@ -93,10 +93,10 @@ class Block {
 
     async hash() {
         return await sha256Hex(
-            this.index + 
-            this.previousHash + 
-            this.timestamp + 
-            JSON.stringify(this.transactions) + 
+            this.index +
+            this.previousHash +
+            this.timestamp +
+            JSON.stringify(this.transactions) +
             this.nonce
         );
     }
@@ -147,13 +147,13 @@ class Blockchain {
         return JSON.stringify(this.toJSON());
     }
 
-    async getTotalWorkAverage() {
+    async getTotalWork() {
         let max = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
         let totalWork = 0;
         for (let block of this.chain) {
             totalWork += max/(parseInt(await block.hash(), 16)+1);
         }
-        return totalWork / this.chain.length;
+        return totalWork;
     }
 
     static fromJSON(json) {
@@ -169,8 +169,8 @@ class Blockchain {
     }
 
     recomputeTarget() {
-        if ( 
-            (this.chain[this.chain.length-1].index % DIFFICULTY_ADJUSTMENT_INTERVAL != 0) || 
+        if (
+            (this.chain[this.chain.length-1].index % DIFFICULTY_ADJUSTMENT_INTERVAL != 0) ||
             (this.chain.length < DIFFICULTY_ADJUSTMENT_INTERVAL) ) { return; }
 
         const blockBack = this.chain[this.chain.length - DIFFICULTY_ADJUSTMENT_INTERVAL];
@@ -195,7 +195,7 @@ class Blockchain {
         if (parseInt(await block.hash(), 16) > this.target) { return false; }
         if (roughSizeOfObject(block) > MAX_BLOCK_SIZE_BYTES) { return false; }
         if (!await this.verifyBlockTransactions(block)) { return false; }
-        
+
         return true;
     }
 
@@ -282,11 +282,26 @@ class Blockchain {
             }
         }
         return balance;
-    }
+	}
 
-    async isValidTransaction(transaction) {
+	getLatestTransactions(address, number) {
+		let latestTransactions = [];
+		for (let block of this.chain.toReversed()) {
+			for (let transaction of block.transactions || []) {
+                if (transaction.to === address || transaction.from === address) {
+					latestTransactions.push(transaction);
+					if (latestTransactions.length >= number) {
+						return latestTransactions;
+					}
+                }
+            }
+		}
+		return latestTransactions;
+	}
+
+	async isValidTransaction(transaction) {
         return (
-            await transaction.verify() && 
+            await transaction.verify() &&
             (this.getConfirmedBalance(transaction.from) >= (transaction.amount + transaction.fee)) &&
             !await this.hasTransactionHash(await transaction.hash())
         );
@@ -301,10 +316,10 @@ class Blockchain {
         let txIndex = 0;
         for (let tx of block.transactions || []) {
             let transaction = Transaction.fromJSON(tx);
-            
+
             if (transaction.type === 'coinbase') { txIndex++; continue; }
             if (!await transaction.verify()) { return false; }
-            
+
             const fromAddress = transaction.from;
             let balance = this.getConfirmedBalance(fromAddress);
             for (let i = 0; i < txIndex; i++) {

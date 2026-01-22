@@ -39,6 +39,12 @@ body, html {
     box-sizing: border-box;
 }
 
+#main {
+	display: flex;
+	flex-direction: column;
+	align-items: space-around;
+}
+
 .main-action-button * {
     color: var(--onyx);
 }
@@ -46,12 +52,95 @@ body, html {
     background-color: var(--white);
     cursor: pointer;
     display: flex;
+    align-items: center;
     border-radius: 16px;
-    padding: 4px 8px;
+    padding: 8px 16px;
+}
+
+#main-balance {
+	font-size: 3rem;
+}
+
+#main-address {
+	opacity: 0.6;
+	font-size: 0.6rem;
 }
 
 #main-actions {
     display: flex;
     gap: 16px;
     margin-top: 20px;
+}
+
+#latest-transactions {
+	padding-top: 20px;
+	box-sizing: border-box;
+	overflow-y: scroll;
+	height: 60%;
+	margin-top: 16px;
+	scrollbar-color: var(--shadow-grey) var(--onyx);
+	scrollbar-arrow-color: var(--onyx) var(--onyx);
+}
+
+.main-transaction {
+	display: flex;
+	align-items: center;
+	padding: 8px;
+}
+
+.main-transaction:not(:last-child) {
+	border-bottom: 1px solid var(--shadow-grey);
+}
+
+.main-transaction .amount {
+	margin-right: 20px;
+	font-weight: bold;
+}
+.main-transaction.positive .amount { color: var(--emerald); }
+.main-transaction.negative .amount { color: var(--atomic-tangerine); }
+.main-transaction.blink .amount { color: var(--mustard); }
+
+#main-miner-toggle {
+	cursor: pointer;
+	position: absolute;
+	top: 20px;
+	right: 20px;
+}
+
+#main-miner-toggle>div {
+	display: flex;
+	align-items: center;
+}
+
+@keyframes blink {
+	0% {opacity: 1;}
+	50% {opacity: .6;}
+	0% {opacity: 1;}
+}
+
+#miner-working, .blink {
+	animation: blink 1.5s infinite ease-in-out;
+}
+
+#root>section>.close-button{
+	cursor: pointer;
+	position: absolute;
+	top: 20px;
+	right: 20px;
+}
+
+input {
+	background: var(--onyx);
+	color: var(--white);
+	border: none;
+	border-bottom: 2px solid var(--white);
+	padding: 8px;
+}
+
+#send-panel>div {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	margin-bottom: 20px;
 }
