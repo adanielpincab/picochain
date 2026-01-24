@@ -27,11 +27,11 @@
             <div id="main-balance"></div>
             <div id="main-address"></div>
             <div id="main-actions">
-                <div class="main-action-button" id="main-action-send">
+                <div class="main-action-button" id="main-action-send" onclick="UI.gotoRootView('send-panel');">
                     <span class="material-symbols-outlined">arrow_warm_up</span>
                     <div>Send</div>
                 </div>
-                <div class="main-action-button" id="main-action-receive">
+                <div class="main-action-button" id="main-action-receive" onclick="UI.gotoRootView('receive-panel');">
                     <span class="material-symbols-outlined">arrow_cool_down</span>
                     <div>Receive</div>
                 </div>
@@ -41,12 +41,16 @@
         <section id="send-panel">
 	        <span onclick="UI.gotoRootView('main')" class="close-button material-symbols-outlined">close</span>
 	       	<div>
-				<input type="text" id="send-recipient-address" placeholder="Recipient Address" required>
-            	<input type="number" id="send-amount" min="0" placeholder="Amount" required>
+                <input type="number" id="send-amount" min="0" placeholder="0" required>
+				<input type="text" id="send-recipient-address" placeholder="Send to..." required>
 	        </div>
             <div class="main-action-button" id="send-panel-submit">
 	            <span class="material-symbols-outlined">send</span>
             </div>
+        </section>
+        <section id="receive-panel">
+	        <span onclick="UI.gotoRootView('main')" class="close-button material-symbols-outlined">close</span>
+            <div id="receive-qrcode"></div>
         </section>
     </div>
 
@@ -69,6 +73,7 @@
         <div id="debug-blockchain"></div>
     </aside>
 </body>
+<script src="imports/qrcodejs/qrcode.min.js"></script>
 <script src="imports/elliptic.min.js"></script>
 <script src="crypto.js"></script>
 

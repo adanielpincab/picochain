@@ -72,10 +72,9 @@ async function listenToPeer(pubKey) {
     if (pubKey === node_keys.pub) return; // don't listen to self
 
     gun.get('~' + pubKey).get('blockchain').on(async (data, key) => {
-		let peerBlockchain = Blockchain.fromJSON(JSON.parse(data));
-        console.log(await peerBlockchain.getTotalWork(), await blockchain.getTotalWork())
+        let peerBlockchain = Blockchain.fromJSON(JSON.parse(data));
         if (!await validateFullChain(peerBlockchain)) return;
-        if (await peerBlockchain.getTotalWork() <= await blockchain.getTotalWork()) return;
+        if (await peerBlockchain.getTotalWorkAverage() <= await blockchain.getTotalWorkAverage()) return;
         console.log('✅⛓️🤝 Better blockchain received from peer:', pubKey);
         Object.assign(blockchain, peerBlockchain);
         await mempool.cleanUp();
@@ -152,7 +151,7 @@ async function mine(miningAddress) {
         console.log('✅📦 Mined new block:', await block.hash());
         console.log('Blockchain target:', blockchain.target);
         console.log('Blockchain bytes size:', roughSizeOfObject(blockchain), 'bytes');
-        console.log('Blockchain total work average:', await blockchain.getTotalWork());
+        console.log('Blockchain total work average:', await blockchain.getTotalWorkAverage());
 
         worker.postMessage({blockchain: blockchain.toJSON(), rewardAddress: miningAddress, mempool: mempool.serialize()});
         broadcastMyChain();

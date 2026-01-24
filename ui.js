@@ -77,10 +77,23 @@ class UI {
 		return false;
 	}
 
+	static refreshQRCode(qrcodeID, content) {
+		var qrcode = new QRCode(qrcodeID, {
+			text: content,
+			width: 200,
+			height: 200,
+			colorDark : "#ffffff",
+			colorLight : "#39393a",
+			correctLevel : QRCode.CorrectLevel.H
+		});
+		qrcode.makeCode(content);
+	}
+
 	static update(address, balance, blockchain, mempool, mining) {
 		if (this.newState('address', address)) {
 			console.log('updated address.')
 			root.querySelector("#main-address").textContent = address;
+			UI.refreshQRCode('receive-qrcode', address);
 		}
 		if (this.newState('balance', balance)) {
 			root.querySelector("#main-balance").textContent = this.formatCoins(balance);
@@ -96,7 +109,3 @@ class UI {
 
 UI.toggleDebugPanel();
 UI.gotoRootView('main');
-
-root.querySelector('#main-action-send').addEventListener('click', () => {
-	UI.gotoRootView('send-panel');
-});
