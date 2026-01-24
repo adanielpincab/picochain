@@ -3,6 +3,7 @@ const root = document.getElementById('root');
 class UI {
 	static LOCALE = 'en-US';
 	static currentState = {};
+	static qrRead = null;
 
 	static formatCoins(number) {
 		number /= UNITS_PER_COIN;
@@ -89,11 +90,29 @@ class UI {
 		qrcode.makeCode(content);
 	}
 
+	static readQR() {
+		const qr = new Html5Qrcode("reader");
+
+		qr.start(
+		  { facingMode: "environment" },
+		  { fps: 10, qrbox: 250 },
+		  text => {
+		    console.log("QR:", text);
+		    qr.stop();
+		  }
+		);
+	}
+
+	static prettifyAddress(address) {
+		return address.replace(/(.{4})/g, "$1<div class='word-break'></div>");
+	}
+
 	static update(address, balance, blockchain, mempool, mining) {
 		if (this.newState('address', address)) {
 			console.log('updated address.')
 			root.querySelector("#main-address").textContent = address;
 			UI.refreshQRCode('receive-qrcode', address);
+			root.querySelector('#receive-address').innerHTML = this.prettifyAddress(address);
 		}
 		if (this.newState('balance', balance)) {
 			root.querySelector("#main-balance").textContent = this.formatCoins(balance);

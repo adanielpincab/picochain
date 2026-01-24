@@ -177,3 +177,15 @@ input[type=number] {
 	padding: 16px;
 	border-radius: 4px;
 }
+
+#receive-address {
+	font-size: 1.6rem;
+	max-width: 20ch;
+	margin-top: 20px;
+	margin-bottom: 20px;
+}
+
+.word-break {
+	display: inline-block;
+	width: 8px;
+}

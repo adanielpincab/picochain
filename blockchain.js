@@ -1,7 +1,7 @@
 async function addressFromPublicKeyHex(publicKeyHex) {
     const hash = await sha256Hex(publicKeyHex);
     const doubleHash = await sha256Hex(hash);
-    return 'PC_' + doubleHash.slice(-40);
+    return doubleHash.slice(-40);
 }
 
 async function addressFromPrivateKeyHex(privateKeyHex) {
@@ -153,7 +153,7 @@ class Blockchain {
         for (let block of this.chain) {
             totalWork += max/(parseInt(await block.hash(), 16)+1);
         }
-        return totalWork;
+        return (totalWork / this.chain.length) * this.length();
     }
 
     static fromJSON(json) {
@@ -233,6 +233,11 @@ class Blockchain {
         }
 
         return true;
+    }
+
+	async getLastBlockHash() {
+		const lastBlock = this.chain[this.chain.length - 1];
+        return await lastBlock.hash();
     }
 
     async getBlockTemplate() {

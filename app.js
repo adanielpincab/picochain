@@ -47,7 +47,8 @@ class Mempool {
         return this.transactions.some(async tx => await tx.hash() === transactionHash);
     }
 
-    serialize() {
+	async serialize() {
+		await this.cleanUp();
         return this.transactions.map(tx => tx.toJSON());
     }
 
@@ -72,9 +73,10 @@ async function listenToPeer(pubKey) {
     if (pubKey === node_keys.pub) return; // don't listen to self
 
     gun.get('~' + pubKey).get('blockchain').on(async (data, key) => {
-        let peerBlockchain = Blockchain.fromJSON(JSON.parse(data));
-        if (!await validateFullChain(peerBlockchain)) return;
-        if (await peerBlockchain.getTotalWorkAverage() <= await blockchain.getTotalWorkAverage()) return;
+		let peerBlockchain = Blockchain.fromJSON(JSON.parse(data));
+		if (await peerBlockchain.getLastBlockHash() === await blockchain.getLastBlockHash()) return;
+		if (!await validateFullChain(peerBlockchain)) return;
+        if (await peerBlockchain.getTotalWork() <= await blockchain.getTotalWork()) return;
         console.log('✅⛓️🤝 Better blockchain received from peer:', pubKey);
         Object.assign(blockchain, peerBlockchain);
         await mempool.cleanUp();
@@ -123,7 +125,7 @@ function broadcastMyChain() {
 
 async function broadcastMyMempool() {
     await mempool.cleanUp();
-    let memPoolString = JSON.stringify(mempool.serialize());
+    let memPoolString = JSON.stringify(await mempool.serialize());
     gun.user().get('mempool').put(memPoolString);
 }
 
@@ -138,8 +140,7 @@ function resetWorker() {
 let mining = false;
 async function mine(miningAddress) {
 	if (!mining) return;
-    await mempool.cleanUp();
-    worker.postMessage({blockchain: blockchain.toJSON(), rewardAddress: miningAddress, mempool: mempool.serialize()});
+    worker.postMessage({blockchain: blockchain.toJSON(), rewardAddress: miningAddress, mempool: await mempool.serialize()});
     worker.onmessage = async function(e) {
         const block = Block.fromJSON(e.data.block);
         try {
@@ -151,9 +152,9 @@ async function mine(miningAddress) {
         console.log('✅📦 Mined new block:', await block.hash());
         console.log('Blockchain target:', blockchain.target);
         console.log('Blockchain bytes size:', roughSizeOfObject(blockchain), 'bytes');
-        console.log('Blockchain total work average:', await blockchain.getTotalWorkAverage());
+        console.log('Blockchain total work:', await blockchain.getTotalWork());
 
-        worker.postMessage({blockchain: blockchain.toJSON(), rewardAddress: miningAddress, mempool: mempool.serialize()});
+        worker.postMessage({blockchain: blockchain.toJSON(), rewardAddress: miningAddress, mempool: await mempool.serialize()});
         broadcastMyChain();
 	}
 }
